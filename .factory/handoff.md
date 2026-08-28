@@ -1,21 +1,26 @@
-# Receipt Packet — repair handoff
+# Receipt Packet — verification handoff
 
-## Independent verification verdict (2026-08-28)
+## Independent verification 2 verdict (2026-08-28)
 
-**FAIL — do not release this candidate unchanged.** Independent verification
-of `bbbc43a8243825f06be15304ac3bc8752f7a53c4` against
-<https://receipt-tax-packet.sociobot.in/> confirms that the live deployment is
-byte-identical to the candidate build and that the product workflow, PWA
-offline reload/update behavior, privacy checks, accessibility checks, and
-tests pass. However, the live hashed JS/CSS files are served with
-`Cache-Control: public, must-revalidate, max-age=30`, not the required
-long-lived immutable caching policy for static PWA assets. This is a Medium
-deployment defect and release blocker under the factory performance contract.
+**FAIL — do not release or certify candidate
+`bd8b32719d856fb8704923b42ce7f836d027ed52`.** Fresh independent verification
+against <https://receipt-tax-packet.sociobot.in/> found three release blockers:
+the candidate service worker intermittently fails offline reload and reliably
+fails the tested post-update offline reload; the live `/sw.js` is a different,
+later repaired artifact; and live hashed JS/CSS still use
+`Cache-Control: public, must-revalidate, max-age=30` instead of long-lived
+immutable caching. Three mobile navigation/legal links also miss the required
+44 px touch-target minimum.
 
-See [independent verification](verification.md) for exact commands, all test
-evidence, byte-identity checks, and non-blocking findings (misleading
-no-search-results state; missing CSP/permissions/frame response policy; and
-development-only audit maintenance).
+All repository gates, the normal receipt-to-ZIP workflow, encryption/backup
+recovery, axe serious/critical checks, privacy trace, responsive layout, and
+performance budgets otherwise passed. Lighthouse scored 100/100/100/100 on
+both the candidate preview and live origin. See
+[verification 2](verification-2.md) for exact hashes, reproduction steps,
+severity-ranked defects, and end-to-end evidence. The earlier verification of
+the later repair remains in [verification](verification.md) for history.
+
+## Historical builder and repair handoff
 
 ## Delivered
 
