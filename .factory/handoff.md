@@ -1,69 +1,61 @@
-# Receipt Packet — verification handoff
+# Receipt Packet — repair handoff
 
-## Independent verification 2 verdict (2026-08-28)
+## Release status
 
-**FAIL — do not release or certify candidate
-`bd8b32719d856fb8704923b42ce7f836d027ed52`.** Fresh independent verification
-against <https://receipt-tax-packet.sociobot.in/> found three release blockers:
-the candidate service worker intermittently fails offline reload and reliably
-fails the tested post-update offline reload; the live `/sw.js` is a different,
-later repaired artifact; and live hashed JS/CSS still use
-`Cache-Control: public, must-revalidate, max-age=30` instead of long-lived
-immutable caching. Three mobile navigation/legal links also miss the required
-44 px touch-target minimum.
+**PASS — repaired, pushed, and deployed 2026-08-28.** This repair addresses the
+independent verifier report in `ae276377c49c40d24b36a3267a02002d5c5886aa`
+for candidate `bd8b32719d856fb8704923b42ce7f836d027ed52`.
 
-All repository gates, the normal receipt-to-ZIP workflow, encryption/backup
-recovery, axe serious/critical checks, privacy trace, responsive layout, and
-performance budgets otherwise passed. Lighthouse scored 100/100/100/100 on
-both the candidate preview and live origin. See
-[verification 2](verification-2.md) for exact hashes, reproduction steps,
-severity-ranked defects, and end-to-end evidence. The earlier verification of
-the later repair remains in [verification](verification.md) for history.
+Deployed product code is commits `fdd2264` and `8a174de` on `main`. Deployment
+`54871135-7a0a-4ca8-b395-f0d8aaf1e9db` completed successfully to the existing
+Azure Static Web App in Central US. The custom domain is Ready at
+<https://receipt-tax-packet.sociobot.in/>.
 
-## Historical builder and repair handoff
+## Repairs
 
-## Delivered
+- **Offline/update reliability:** production builds generate `dist/sw.js` from
+  the actual output inventory and precache the hashed JS/CSS. Cache lookup uses
+  `ignoreVary`; install uses `skipWaiting`; activation retires old caches before
+  `clients.claim`. The obsolete runtime `CACHE_URLS` protocol and stale
+  `public/sw.js` were removed. Deploy-only `staticwebapp.config.json` is
+  explicitly excluded because Azure consumes it and returns 404 for that path.
+- **Artifact identity:** the deployed HTML, worker, manifest, legal/offline
+  pages, JS/CSS, artwork, icons, robots, and sitemap are the exact repair build.
+  All 17 deployable files matched local SHA-256 byte-for-byte. Live `/sw.js` and
+  `dist/sw.js` both hash to
+  `49e0cf3d4f5d8d44ee74e7e5bab18de394b801b929366c94869ea1890ffbff4f`.
+- **Response caching:** `/assets/index-CGvgiooB.css` and
+  `/assets/index-DtnT7533.js` now return
+  `Cache-Control: public, max-age=31536000, immutable`. `/sw.js` returns
+  `no-cache, no-store, must-revalidate` so updates are discovered promptly.
+- **Mobile targets:** the wordmark is 160.1×44 CSS px; Privacy and Terms are
+  each 44×44 CSS px at 390×844. Automated geometry assertions protect all three.
+- **Other verifier findings:** a populated vault now shows a distinct “No
+  matching receipts” state with a keyboard-operable clear action. CSP,
+  Permissions-Policy, `X-Frame-Options: DENY`, nosniff, and Referrer-Policy ship
+  through Azure configuration. Vite 7.3.6 and Vitest 3.2.7 remove the reported
+  development advisories; both full and production-only audits report zero.
 
-Receipt Packet v1 is a complete local-first receipt evidence workflow. A user
-creates a passphrase vault, imports a receipt image, records its date, merchant,
-amount, currency, category, and claim explanation, then reviews or filters the
-ledger and exports a period packet. Every original is encrypted at rest,
-preserved byte-for-byte, fingerprinted with SHA-256, and linked by the same
-deterministic path in the PDF/CSV and ZIP.
+## Exact regression coverage
 
-The export contains:
+`npm test` now proves:
 
-- `index.pdf` with period, totals, explanations, original paths, and hashes;
-- `index.csv` for an accountant or spreadsheet;
-- `README.txt` explaining integrity and the non-advice boundary;
-- `originals/NNN-filename.ext` for every selected receipt.
+- five crypto/export unit and integration tests;
+- production TypeScript and Vite build;
+- generated worker contains every hashed JS/CSS asset, `ignoreVary`,
+  `skipWaiting`, `clients.claim`, and no runtime `CACHE_URLS` or deploy-only
+  configuration URL;
+- deployment policy contains immutable asset caching, worker revalidation, CSP,
+  permissions, content-type, and frame restrictions;
+- desktop vault creation → encrypted receipt → search/no-results recovery → ZIP
+  export, with keyboard activation and axe;
+- 390px fresh install, two controlled online reloads, two offline reloads,
+  zero horizontal overflow, and measured 44px targets;
+- a real active-worker replacement, visible update action, old-cache retirement,
+  hashed asset presence in the replacement cache, and offline reload after the
+  user chooses Reload.
 
-Encrypted JSON backup/restore, a lock action, search, mobile capture, empty and
-error states, offline status, PWA installation, privacy/terms pages, and the $19
-one-time Sociobot supporter unlock are included. Core capture, backup, and full
-packet export remain free; the supporter feature is limited to custom PDF cover
-fields.
-
-## Implementation notes
-
-- Vite + vanilla TypeScript; no runtime packages, CDNs, analytics, or fonts.
-- IndexedDB stores AES-256-GCM ciphertext only. Keys derive in memory with
-  PBKDF2-SHA-256 at 250,000 iterations; no passphrase or plaintext is stored.
-- The production build now generates `dist/sw.js` from the actual output file
-  list. Its versioned precache includes `/`, the hashed Vite JavaScript and CSS,
-  all local assets, manifest, legal pages, and offline page. Cache matching
-  ignores Vite preview's response-only `Vary: Origin` difference, so the same
-  precached module response is available to browser module requests offline.
-  It retains network-first navigations, cache-first assets, `skipWaiting`, and
-  `clients.claim`.
-- Original hero imagery was generated specifically for the product and reviewed
-  for text/brand/seam issues. Prompt and provenance are in `.factory/design.md`
-  and `assets/src/receipt-binder-hero.prompt.json`; WebP variants are 15 KB and
-  40 KB.
-- PWA icons are authored SVG and reproducibly rasterised with
-  `npm run assets:icons`.
-
-## Repair verification
+## Verification evidence
 
 Run from a clean clone:
 
@@ -72,58 +64,44 @@ npm ci
 npm test
 ```
 
-Deployment build command: `npm ci && npm run build`. Output is `dist/` and
-`dist/index.html` is present at its root.
+Results on the repair commit:
 
-Verified 2026-08-28 locally from the repair branch:
+- `npm ci`: 61 packages installed; zero vulnerabilities.
+- Vitest: 2 files, 5/5 tests passed.
+- Playwright 1.58.2 Chromium: 3/3 tests passed.
+- Production build: `dist/index.html` present; JS 36,947 B (12.35 KB gzip), CSS
+  13,930 B (3.84 KB gzip), no fonts, mobile hero 14,718 B.
+- Factory `verify-url.sh`, local and live: HTTP 200, correct title/lang, one
+  `h1`, main landmark, image alt text, labelled buttons, and zero console/page
+  errors. Live measured load was 763 ms.
+- Axe: zero violations on 1440×900 desktop, 390×844 mobile, privacy, terms, and
+  offline pages. Keyboard skip-link, form, dialog, save, and export paths pass.
+  Reduced-motion transition duration is effectively zero (`0.00001s`).
+- Live 390px lifecycle: fresh worker became active and controlling; two offline
+  reloads passed; replacement cache contained both current hashed assets; update
+  toast appeared; post-update offline reload passed; overflow was 0 px.
+- Live privacy trace: no requests outside the product origin during normal use.
+  Invalid-license verification returned HTTP 200,
+  `{valid:false, reason:"invalid"}`, production-origin CORS, and `no-store`.
+- Live response policy includes CSP, Permissions-Policy, frame denial,
+  Referrer-Policy, nosniff, immutable hashed assets, and a non-cacheable worker.
+- Lighthouse 13.0.1 mobile, local: 100 Performance / 100 Accessibility / 100
+  Best Practices / 100 SEO, LCP 1.2 s, TBT 0 ms, CLS 0. Live: 100 / 100 / 100 /
+  100, LCP 1.1 s, TBT 0 ms, CLS 0. Lighthouse emitted a browser-tab shutdown
+  warning after writing each complete JSON report; the audits and scores were
+  complete.
 
-- Reproduced the original failure with `npm ci && npm test`: the vault/receipt/
-  export flow passed, but the 390×844 offline reload failed because the old
-  worker cached HTML without Vite's hashed JS/CSS. A first generated-precache
-  attempt exposed Vite preview's `Vary: Origin` cache mismatch; the final
-  cache-first lookup explicitly ignores that response variance.
-- Exact clean deploy build: `npm ci && npm run build` passed; `dist/index.html`
-  exists at the output root.
-- Full `npm test` passed: 5/5 Vitest unit tests and 2/2 Playwright Chromium
-  tests. The browser flow creates an encrypted vault, links a PNG receipt, and
-  downloads a receipt ZIP. It additionally runs axe with zero serious/critical
-  findings, tabs to the skip link, operates add/save/export with Enter, checks
-  dialog focus, and checks the 390×844 layout has no horizontal overflow.
-- The offline regression test runs against `vite preview` from a fresh build,
-  asserts the actual hashed JS and CSS are in Cache Storage, waits for service
-  worker control, sets the browser context offline, reloads, and verifies the
-  application shell plus the offline status strip. It passed twice consecutively
-  after the repair.
-- Factory `verify-url.sh` against local production preview: HTTP 200; title,
-  `lang`, one `h1`, main landmark, and image-alt checks passed; zero console or
-  page errors; measured load 555 ms.
-- Lighthouse mobile local preview: Performance 100, Accessibility 100, Best
-  Practices 100, SEO 100; LCP 1.2 s, CLS 0, total blocking time 0 ms.
-- Privacy/static scan found no analytics, tracker, CDN, or remote font URLs;
-  the only external endpoint in the built app is the documented Sociobot
-  license checkout/verification API. `npm audit --omit=dev` reported 0
-  production vulnerabilities.
-- Production bundle: 36.7 KB JavaScript and 13.8 KB CSS uncompressed; hero
-  sources 15 KB/40 KB WebP. All are well inside factory budgets.
-- Deployed with `/opt/fleet/lib/deploy-static.sh receipt-tax-packet dist` to
-  Azure Static Web Apps (Central US). Azure reported the custom domain `Ready`.
-  Live `https://receipt-tax-packet.sociobot.in` verification then passed: HTTPS
-  200, 648 ms page load, zero console/page errors, correct title and `lang`,
-  one `h1`, a main landmark, no missing image alt text, and no unlabeled
-  buttons. The live `sw.js` contains the generated versioned precache with the
-  current hashed JS/CSS assets and `ignoreVary` cache matching; `/privacy/`
-  responds with the local-first disclosure.
+The product remains a static Vite + TypeScript offline PWA with `dist/` as the
+deployment root. No backend, package-consumer surface, tracking, CDN font, or
+new external service was added.
 
-## Known gaps and next steps
+## Known product constraints
 
-- Browser storage is per device and has no cloud sync by design. Users must keep
-  explicit backups; clearing site data without one is unrecoverable.
-- There is no passphrase recovery. This is an intentional consequence of the
-  local encryption model and is disclosed before vault creation.
-- HEIC/HEIF bytes can be preserved where the browser provides them, but some
-  desktop browsers cannot preview those formats; JPG/PNG/WebP are safest.
-- The factory must register the production billing product and confirm the $19
-  price/return URL. The app intentionally contains the slug-based contract, not
-  a provider product ID.
-- Run a production-origin Lighthouse check after deployment because service
-  worker and cache timing can vary by host.
+- Browser storage is per device and intentionally has no cloud sync. Clearing
+  site data without an exported encrypted backup is unrecoverable.
+- There is intentionally no passphrase recovery; this is disclosed before vault
+  creation.
+- HEIC/HEIF originals can be preserved where supplied, but browser preview
+  support varies. JPG, PNG, and WebP are safest.
+- The factory must keep the production `$19` Sociobot billing product and return
+  URL registered. The app uses only the documented slug-based billing contract.
