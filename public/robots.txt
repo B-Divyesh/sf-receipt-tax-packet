@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://receipt-tax-packet.sociobot.in/sitemap.xml

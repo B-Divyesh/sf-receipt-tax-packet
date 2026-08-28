@@ -1,0 +1,30 @@
+{
+  "slug": "receipt-tax-packet",
+  "title": "Receipt Packet",
+  "territory": "utilities",
+  "user": "A self-employed person preparing a tax or accountant handoff who needs each claimed expense tied to its original receipt and an exportable explanation.",
+  "evidence": [
+    {
+      "url": "https://hn.algolia.com/api/v1/items/48369446",
+      "date": "2026-06-02",
+      "quote_or_summary": "The author describes paper receipts for tax deductions and expense tracking as time-consuming to enter, easy to lose, damage, or overlook."
+    },
+    {
+      "url": "https://github.com/Expensify/App/issues/94452",
+      "date": "2026-06-24",
+      "quote_or_summary": "A production issue reports that a newly scanned receipt does not display on an employee expense after an admin replaced the receipt, showing the importance of receipt-to-expense integrity."
+    }
+  ],
+  "recurrence": "Independent June 2026 reports show both the intake burden and the trust problem when a receipt loses its link to an expense.",
+  "current_workaround": "Take photos into a camera roll, type a spreadsheet row, email files to an accountant, or subscribe to a full expense-management service.",
+  "incumbents_and_gap": "Expensify, Dext, QuickBooks, and Zoho Expense handle capture and accounting flows; the gap is a local, accountant-ready evidence packet that does not require bank access or OCR subscription.",
+  "smallest_useful_product": "Offline PWA that captures/imports receipt images, records amount/date/category/claim note, hashes the original, and exports one ZIP/PDF index per period. Non-goals: OCR, bank sync, reimbursement workflow, bookkeeping, or tax calculation.",
+  "success_measure": "At period end, 80% of pilot users export a complete packet with every claimed line linked to an original image.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time — local capture and periodic exports suit sole traders better than per-receipt SaaS pricing.",
+  "constraints": "Receipts can contain personal data; encryption and explicit backup/export are required; preserve originals; no tax-deductibility claims.",
+  "est_build_effort": "S",
+  "why_distinct": "It is an evidence binder for a handoff, not a receipt-scanning AI or corporate expense platform.",
+  "confidence": 4,
+  "state": "BUILT"
+}
