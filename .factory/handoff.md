@@ -83,10 +83,14 @@ Verified 2026-08-28 locally from the repair branch:
   production vulnerabilities.
 - Production bundle: 36.7 KB JavaScript and 13.8 KB CSS uncompressed; hero
   sources 15 KB/40 KB WebP. All are well inside factory budgets.
-- Live-domain identity verification was attempted before deployment but DNS for
-  `receipt-tax-packet.sociobot.in` was not resolvable from this repair
-  container. Re-run `/opt/fleet/lib/verify-url.sh` against the live URL after
-  the factory deployment completes.
+- Deployed with `/opt/fleet/lib/deploy-static.sh receipt-tax-packet dist` to
+  Azure Static Web Apps (Central US). Azure reported the custom domain `Ready`.
+  Live `https://receipt-tax-packet.sociobot.in` verification then passed: HTTPS
+  200, 648 ms page load, zero console/page errors, correct title and `lang`,
+  one `h1`, a main landmark, no missing image alt text, and no unlabeled
+  buttons. The live `sw.js` contains the generated versioned precache with the
+  current hashed JS/CSS assets and `ignoreVary` cache matching; `/privacy/`
+  responds with the local-first disclosure.
 
 ## Known gaps and next steps
 
@@ -101,6 +105,3 @@ Verified 2026-08-28 locally from the repair branch:
   a provider product ID.
 - Run a production-origin Lighthouse check after deployment because service
   worker and cache timing can vary by host.
-- The configured Azure static deployment still needs a reachable Azure control
-  plane and DNS from the factory environment; this repair leaves a committed,
-  buildable `dist/` for `deploy-static.sh receipt-tax-packet dist`.
