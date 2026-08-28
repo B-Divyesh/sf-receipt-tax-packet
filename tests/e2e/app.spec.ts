@@ -6,6 +6,8 @@ const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0l
 test('creates an encrypted vault, links a receipt, and exports a packet', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Every claim keeps its proof.');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
 
@@ -15,19 +17,23 @@ test('creates an encrypted vault, links a receipt, and exports a packet', async 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your receipt packet');
   await expect(page.getByText('No evidence filed yet')).toBeVisible();
 
-  await page.getByRole('button', { name: '+ Add receipt' }).click();
+  await page.getByRole('button', { name: '+ Add receipt' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Original receipt image')).toBeFocused();
   await page.getByLabel('Original receipt image').setInputFiles({ name: 'rail-ticket.png', mimeType: 'image/png', buffer: tinyPng });
   await page.getByLabel('Receipt date').fill('2026-08-20');
   await page.getByLabel('Merchant').fill('Metro Rail');
   await page.getByLabel('Amount').fill('18.40');
   await page.getByLabel('Category').selectOption('Travel');
   await page.getByLabel('Claim explanation').fill('Train to client site for project meeting.');
-  await page.getByRole('button', { name: 'Save receipt' }).click();
+  await page.getByRole('button', { name: 'Save receipt' }).focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByText('Metro Rail')).toBeVisible();
   await expect(page.getByText('100% linked')).toBeVisible();
 
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export evidence ZIP' }).click();
+  await page.getByRole('button', { name: 'Export evidence ZIP' }).focus();
+  await page.keyboard.press('Enter');
   const packet = await download;
   expect(packet.suggestedFilename()).toMatch(/^receipt-packet-.*\.zip$/);
 });
@@ -37,7 +43,15 @@ test('loads the app shell offline at mobile width', async ({ browser }) => {
   const page = await context.newPage();
   await page.goto('/');
   await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.waitForTimeout(500);
+  const precache = await page.evaluate(async () => {
+    const keys = await caches.keys();
+    const cached = await Promise.all(keys.map(async (key) => (await caches.open(key)).keys()));
+    return cached.flat().map((request) => new URL(request.url).pathname);
+  });
+  expect(precache.some((path) => /^\/assets\/index-.*\.js$/.test(path))).toBeTruthy();
+  expect(precache.some((path) => /^\/assets\/index-.*\.css$/.test(path))).toBeTruthy();
+  expect(precache).toContain('/');
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await page.reload();
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });

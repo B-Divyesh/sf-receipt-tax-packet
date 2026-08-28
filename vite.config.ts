@@ -1,6 +1,75 @@
-import { defineConfig } from 'vite';
+import { createHash } from 'node:crypto';
+import { readdir, writeFile } from 'node:fs/promises';
+import { join, relative, sep } from 'node:path';
+import { defineConfig, type Plugin } from 'vite';
+
+const cacheName = (files: string[]): string =>
+  `receipt-packet-shell-${createHash('sha256').update(files.join('\n')).digest('hex').slice(0, 12)}`;
+
+async function filesIn(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(entries.map(async (entry) => {
+    const path = join(directory, entry.name);
+    return entry.isDirectory() ? filesIn(path) : [path];
+  }));
+  return nested.flat();
+}
+
+function serviceWorkerSource(version: string, precache: string[]): string {
+  return `/* Generated during the production build. Do not edit this copy. */
+const VERSION = ${JSON.stringify(version)};
+const PRECACHE = ${JSON.stringify(precache, null, 2)};
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(Promise.all([
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key)))),
+    self.clients.claim(),
+  ]));
+});
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(fetch(request).then((response) => {
+      if (response.ok) void caches.open(VERSION).then((cache) => cache.put(request, response.clone()));
+      return response;
+    }).catch(async () => (await caches.match(request, { ignoreVary: true })) || (await caches.match('/', { ignoreVary: true })) || (await caches.match('/offline.html', { ignoreVary: true }))));
+    return;
+  }
+
+  event.respondWith(caches.match(request, { ignoreVary: true }).then((cached) => cached || fetch(request).then((response) => {
+    if (response.ok) void caches.open(VERSION).then((cache) => cache.put(request, response.clone()));
+    return response;
+  })));
+});
+`;
+}
+
+function generatedPrecache(): Plugin {
+  return {
+    name: 'receipt-packet-generated-precache',
+    apply: 'build',
+    async closeBundle() {
+      const output = join(process.cwd(), 'dist');
+      const files = await filesIn(output);
+      const precache = files
+        .map((file) => `/${relative(output, file).split(sep).join('/')}`)
+        .filter((file) => file !== '/sw.js' && !file.endsWith('.map'))
+        .concat(['/', '/privacy/', '/terms/'])
+        .sort();
+      await writeFile(join(output, 'sw.js'), serviceWorkerSource(cacheName(precache), precache));
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [generatedPrecache()],
   build: {
     target: 'es2022',
     outDir: 'dist',
