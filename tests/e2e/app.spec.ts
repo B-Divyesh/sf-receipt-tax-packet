@@ -8,6 +8,9 @@ test('creates an encrypted vault, links a receipt, and exports a packet', async 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Every claim keeps its proof.');
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main#main')).toBeFocused();
+  await expect(page).toHaveURL(/#main$/);
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([]);
 

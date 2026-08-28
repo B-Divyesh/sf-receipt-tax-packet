@@ -25,6 +25,8 @@ for (const required of ['ignoreVary: true', 'self.skipWaiting()', 'self.clients.
   if (!worker.includes(required)) throw new Error(`Service worker is missing ${required}`);
 }
 if (worker.includes('CACHE_URLS')) throw new Error('Obsolete runtime CACHE_URLS protocol remains in the worker');
+if (worker.includes('cache.put(')) throw new Error('The immutable shell cache must not be recreated by runtime writes');
+if (!worker.includes("key.startsWith(CACHE_PREFIX) && key !== VERSION")) throw new Error('Worker cache retirement is not namespace-safe');
 if (worker.includes('"/staticwebapp.config.json"')) throw new Error('Deploy-only configuration must not be precached');
 
 const config = JSON.parse(await readFile(join(output, 'staticwebapp.config.json'), 'utf8'));
@@ -34,6 +36,8 @@ if (assets?.headers?.['Cache-Control'] !== 'public, max-age=31536000, immutable'
 }
 const swRoute = config.routes?.find((route) => route.route === '/sw.js');
 if (!swRoute?.headers?.['Cache-Control']?.includes('no-store')) throw new Error('Service worker is not configured for revalidation');
+const manifestRoute = config.routes?.find((route) => route.route === '/manifest.webmanifest');
+if (!manifestRoute?.headers?.['Content-Type']?.startsWith('application/manifest+json')) throw new Error('Manifest MIME type is not configured');
 for (const header of ['Content-Security-Policy', 'Permissions-Policy', 'X-Content-Type-Options', 'X-Frame-Options']) {
   if (!config.globalHeaders?.[header]) throw new Error(`Missing security header ${header}`);
 }

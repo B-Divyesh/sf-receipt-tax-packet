@@ -23,7 +23,7 @@ Live site: <https://receipt-tax-packet.sociobot.in>
 - Encrypted JSON backup and restore so data ownership is not tied to the app.
 - Installable PWA shell with an offline fallback and fully offline workspace.
 - Free core workflow plus a $19 one-time supporter unlock for custom PDF cover
-  fields through the Sociobot billing API.
+  fields through a rate-limited, same-origin relay to the Sociobot billing API.
 - Dedicated privacy and terms pages. No analytics, trackers, CDN scripts, or
   remote fonts.
 
@@ -61,7 +61,9 @@ Static output lands in `dist/`, with `dist/index.html` at its root. Deploy that
 directory as-is; infrastructure, DNS, billing registration, and rewrites are
 managed by the Param Factory. The output includes Azure Static Web Apps policy
 for immutable fingerprinted assets, a revalidated service worker, CSP,
-permissions policy, and frame restrictions.
+permissions policy, and frame restrictions. The factory deploy command also
+detects `api/` and publishes the managed license-verification function alongside
+the static artifact.
 
 ## Security and data recovery
 

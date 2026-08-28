@@ -17,10 +17,18 @@ async function filesIn(directory: string): Promise<string[]> {
 
 function serviceWorkerSource(version: string, precache: string[]): string {
   return `/* Generated during the production build. Do not edit this copy. */
+const CACHE_PREFIX = 'receipt-packet-shell-';
 const BASE_VERSION = ${JSON.stringify(version)};
 const REVISION = new URL(self.location.href).searchParams.get('revision');
 const VERSION = REVISION ? \`${'${BASE_VERSION}'}-\${REVISION.replace(/[^a-z0-9._-]/gi, '')}\` : BASE_VERSION;
 const PRECACHE = ${JSON.stringify(precache, null, 2)};
+
+const retireOldShells = async () => {
+  const keys = await caches.keys();
+  await Promise.all(keys
+    .filter((key) => key.startsWith(CACHE_PREFIX) && key !== VERSION)
+    .map((key) => caches.delete(key)));
+};
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -28,9 +36,9 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim()),
+    retireOldShells()
+      .then(() => self.clients.claim())
+      .then(retireOldShells),
   );
 });
 
@@ -39,17 +47,11 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then((response) => {
-      if (response.ok) void caches.open(VERSION).then((cache) => cache.put(request, response.clone()));
-      return response;
-    }).catch(async () => (await caches.match(request, { ignoreVary: true })) || (await caches.match('/', { ignoreVary: true })) || (await caches.match('/offline.html', { ignoreVary: true }))));
+    event.respondWith(fetch(request).catch(async () => (await caches.match(request, { ignoreVary: true })) || (await caches.match('/', { ignoreVary: true })) || (await caches.match('/offline.html', { ignoreVary: true }))));
     return;
   }
 
-  event.respondWith(caches.match(request, { ignoreVary: true }).then((cached) => cached || fetch(request).then((response) => {
-    if (response.ok) void caches.open(VERSION).then((cache) => cache.put(request, response.clone()));
-    return response;
-  })));
+  event.respondWith(caches.match(request, { ignoreVary: true }).then((cached) => cached || fetch(request)));
 });
 `;
 }

@@ -28,7 +28,7 @@ export async function verifyLicense(token: string): Promise<boolean | null> {
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? 'null') as CachedVerdict | null;
     if (cached && Date.now() - cached.checkedAt < 86_400_000) return cached.valid;
-    const response = await fetch(`https://api.sociobot.in/api/v1/products/${PRODUCT_SLUG}/verify?license=${encodeURIComponent(token)}`);
+    const response = await fetch(`/api/license/verify?license=${encodeURIComponent(token)}`);
     if (!response.ok) return null;
     const result = await response.json() as { valid: boolean };
     localStorage.setItem(CACHE_KEY, JSON.stringify({ valid: result.valid, checkedAt: Date.now() }));

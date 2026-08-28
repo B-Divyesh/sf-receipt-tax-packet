@@ -63,7 +63,7 @@ class ReceiptApp {
   private renderLocked(hasVault: boolean): void {
     this.releaseUrls();
     this.root.innerHTML = this.shell(`
-      <main id="main" class="entry-grid">
+      <main id="main" class="entry-grid" tabindex="-1">
         <section class="entry-copy" aria-labelledby="page-title">
           <p class="eyebrow">Original → line item → handoff</p>
           <h1 id="page-title">Every claim keeps its proof.</h1>
@@ -141,7 +141,7 @@ class ReceiptApp {
     const currencies = new Set(this.receipts.map((item) => item.currency));
     const totals = [...currencies].map((currency) => formatMoney(this.receipts.filter((item) => item.currency === currency).reduce((sum, item) => sum + item.amountCents, 0), currency)).join(' · ') || '—';
     this.root.innerHTML = this.shell(`
-      <main id="main" class="workbench">
+      <main id="main" class="workbench" tabindex="-1">
         <div class="workspace-head">
           <div><p class="eyebrow">Encrypted evidence binder</p><h1>Your receipt packet</h1><p class="subline">Every saved line has an unchanged original and SHA-256 fingerprint.</p></div>
           <div class="head-actions"><button id="install-button" class="button quiet" type="button" hidden>Install app</button><button id="lock-button" class="button secondary" type="button">Lock vault</button><button id="add-button" class="button primary" type="button">+ Add receipt</button></div>
