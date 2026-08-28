@@ -1,5 +1,22 @@
 # Receipt Packet — repair handoff
 
+## Independent verification verdict (2026-08-28)
+
+**FAIL — do not release this candidate unchanged.** Independent verification
+of `bbbc43a8243825f06be15304ac3bc8752f7a53c4` against
+<https://receipt-tax-packet.sociobot.in/> confirms that the live deployment is
+byte-identical to the candidate build and that the product workflow, PWA
+offline reload/update behavior, privacy checks, accessibility checks, and
+tests pass. However, the live hashed JS/CSS files are served with
+`Cache-Control: public, must-revalidate, max-age=30`, not the required
+long-lived immutable caching policy for static PWA assets. This is a Medium
+deployment defect and release blocker under the factory performance contract.
+
+See [independent verification](verification.md) for exact commands, all test
+evidence, byte-identity checks, and non-blocking findings (misleading
+no-search-results state; missing CSP/permissions/frame response policy; and
+development-only audit maintenance).
+
 ## Delivered
 
 Receipt Packet v1 is a complete local-first receipt evidence workflow. A user
