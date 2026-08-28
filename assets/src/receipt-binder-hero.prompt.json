@@ -1,0 +1,10 @@
+{
+  "asset": "receipt-binder-hero.png",
+  "created": "2026-08-28",
+  "generator": "/opt/fleet/lib/gen-image.sh",
+  "deployment": "factory-image",
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Use case: stylized-concept. Asset type: responsive landing and workspace hero. Top-down editorial still life of an open cream archive evidence folder on an ink-black tabletop, containing three irregular blank thermal-paper receipts visibly tethered by thin cobalt-blue index lines to numbered abstract black ledger marks, one cobalt paper clip, a circular fingerprint-like rubber stamp impression made only of abstract concentric lines, and one acid-lime filing tab. Screen-print and cut-paper collage with tactile recycled paper fibres, hard-edged overhead shadows, bold neo-brutalist geometry, high contrast. Landscape composition, object centred, generous safe crop on all sides. No people, no hands, no brands, no logos, no legible text, no letters, no currency symbols, no calculators, no phones, no gradients, no user interface, no watermark, no signature.",
+  "review": "Accepted: three blank originals are visibly linked to abstract ledger marks; no text artifacts, brands, currency, people, misleading UI, or structural defects were found. Palette and crop match the visual thesis."
+}

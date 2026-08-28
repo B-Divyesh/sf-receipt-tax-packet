@@ -108,6 +108,12 @@ The source PNG and prompt sidecar live in `assets/src/`; responsive WebP output
 lives in `public/assets/`. Generated imagery is original to this product and is
 disclosed in the footer.
 
+**Provenance:** generated 2026-08-28 with the Param Factory `factory-image`
+deployment through `/opt/fleet/lib/gen-image.sh`, 1536×1024, high quality. Review
+passed: no anatomy, seam, text, symbol, or brand issues; all three receipt-to-line
+links remain legible. The complete production prompt is preserved in
+`assets/src/receipt-binder-hero.prompt.json`.
+
 ## Accessibility notes
 
 The design has one document `h1`; application views begin at `h2`. Visible
