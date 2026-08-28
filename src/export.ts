@@ -12,16 +12,19 @@ export function safeFileName(value: string): string {
   return cleaned.slice(0, 80) || 'receipt';
 }
 
+const exportOriginalName = (receipt: VaultReceipt, index: number): string =>
+  `originals/${String(index + 1).padStart(3, '0')}-${safeFileName(receipt.fileName)}`;
+
 export function receiptCsv(receipts: VaultReceipt[]): string {
   const header = ['date', 'merchant', 'amount', 'currency', 'category', 'claim_note', 'original_file', 'sha256'];
-  const rows = receipts.map((receipt) => [
+  const rows = receipts.map((receipt, index) => [
     receipt.date,
     receipt.merchant,
     (receipt.amountCents / 100).toFixed(2),
     receipt.currency,
     receipt.category,
     receipt.note,
-    receipt.fileName,
+    exportOriginalName(receipt, index),
     receipt.hash,
   ]);
   return [header, ...rows].map((row) => row.map(escapeCsv).join(',')).join('\r\n');
@@ -59,7 +62,7 @@ export function createIndexPdf(receipts: VaultReceipt[], options: PacketOptions)
   receipts.forEach((receipt, index) => {
     lines.push({ text: `${index + 1}. ${receipt.date} | ${receipt.merchant} | ${receipt.currency} ${(receipt.amountCents / 100).toFixed(2)} | ${receipt.category}`, size: 10, bold: true });
     wrap(`Claim note: ${receipt.note}`, 95).forEach((text) => lines.push({ text, size: 9 }));
-    lines.push({ text: `Original: ${receipt.fileName} | SHA-256: ${receipt.hash}`, size: 7 });
+    lines.push({ text: `Original: ${exportOriginalName(receipt, index)} | SHA-256: ${receipt.hash}`, size: 7 });
   });
 
   const pages: typeof lines[] = [];
@@ -169,12 +172,8 @@ export async function createPacket(receipts: VaultReceipt[], options: PacketOpti
     { name: 'index.csv', data: `\uFEFF${receiptCsv(receipts)}` },
     { name: 'README.txt', data: `Receipt Packet evidence export\nCreated: ${new Date().toISOString()}\nPeriod: ${options.from || 'all'} to ${options.to || 'present'}\n\nEach original is preserved byte-for-byte. Compare a file's SHA-256 fingerprint with index.csv or index.pdf to verify integrity. Categories and claim notes are supplied by the packet owner; this export does not determine tax deductibility.` },
   ];
-  const used = new Set<string>();
   receipts.forEach((receipt, index) => {
-    let name = `${String(index + 1).padStart(3, '0')}-${safeFileName(receipt.fileName)}`;
-    if (used.has(name)) name = `${String(index + 1).padStart(3, '0')}-${receipt.id.slice(0, 6)}-${safeFileName(receipt.fileName)}`;
-    used.add(name);
-    files.push({ name: `originals/${name}`, data: receipt.image });
+    files.push({ name: exportOriginalName(receipt, index), data: receipt.image });
   });
   return createZip(files);
 }

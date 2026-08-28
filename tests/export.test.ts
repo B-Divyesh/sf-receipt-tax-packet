@@ -13,6 +13,7 @@ describe('packet export', () => {
   it('quotes CSV values and preserves the fingerprint', () => {
     expect(escapeCsv('Rail, Ltd')).toBe('"Rail, Ltd"');
     expect(receiptCsv([sample])).toContain('a'.repeat(64));
+    expect(receiptCsv([sample])).toContain('originals/001-ticket.png');
   });
 
   it('sanitises unsafe original names', () => {
