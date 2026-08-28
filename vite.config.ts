@@ -63,7 +63,7 @@ function generatedPrecache(): Plugin {
       const files = await filesIn(output);
       const precache = files
         .map((file) => `/${relative(output, file).split(sep).join('/')}`)
-        .filter((file) => file !== '/sw.js' && !file.endsWith('.map'))
+        .filter((file) => !['/sw.js', '/staticwebapp.config.json'].includes(file) && !file.endsWith('.map'))
         .concat(['/', '/privacy/', '/terms/'])
         .sort();
       await writeFile(join(output, 'sw.js'), serviceWorkerSource(cacheName(precache), precache));

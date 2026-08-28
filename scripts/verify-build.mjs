@@ -25,6 +25,7 @@ for (const required of ['ignoreVary: true', 'self.skipWaiting()', 'self.clients.
   if (!worker.includes(required)) throw new Error(`Service worker is missing ${required}`);
 }
 if (worker.includes('CACHE_URLS')) throw new Error('Obsolete runtime CACHE_URLS protocol remains in the worker');
+if (worker.includes('"/staticwebapp.config.json"')) throw new Error('Deploy-only configuration must not be precached');
 
 const config = JSON.parse(await readFile(join(output, 'staticwebapp.config.json'), 'utf8'));
 const assets = config.routes?.find((route) => route.route === '/assets/*');
