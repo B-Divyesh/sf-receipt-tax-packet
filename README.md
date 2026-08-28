@@ -46,9 +46,10 @@ npm test
 npm run build
 ```
 
-`npm test` runs unit tests, a production build, and Playwright browser tests for
-the capture/export flow, serious/critical axe findings, 390px layout, and an
-offline reload. Playwright 1.58.2 is pinned.
+`npm test` runs unit tests, a production type/build check, artifact-policy
+assertions, and Playwright browser tests for the capture/export flow, axe,
+keyboard use, exact 390px touch targets, repeated offline reloads, and a real
+service-worker replacement. Playwright 1.58.2 is pinned.
 
 The reproducible deploy command is:
 
@@ -58,7 +59,9 @@ npm ci && npm run build
 
 Static output lands in `dist/`, with `dist/index.html` at its root. Deploy that
 directory as-is; infrastructure, DNS, billing registration, and rewrites are
-managed by the Param Factory.
+managed by the Param Factory. The output includes Azure Static Web Apps policy
+for immutable fingerprinted assets, a revalidated service worker, CSP,
+permissions policy, and frame restrictions.
 
 ## Security and data recovery
 

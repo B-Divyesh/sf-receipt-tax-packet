@@ -180,7 +180,8 @@ class ReceiptApp {
     this.bindWorkspaceEvents();
   }
 
-  private renderReceipts(receipts: VaultReceipt[]): string {
+  private renderReceipts(receipts: VaultReceipt[], filtered = false): string {
+    if (!receipts.length && filtered) return `<div class="empty-state"><div class="empty-stamp" aria-hidden="true">?</div><h3>No matching receipts</h3><p>Your evidence is still filed. Clear the search to see every receipt.</p><button class="button secondary" type="button" data-clear-search>Clear search</button></div>`;
     if (!receipts.length) return `<div class="empty-state"><div class="empty-stamp" aria-hidden="true">0</div><h3>No evidence filed yet</h3><p>Add the first original receipt, then record why you are claiming it.</p><button class="button primary" type="button" data-empty-add>+ Add first receipt</button></div>`;
     return `<ol class="receipt-list">${receipts.map((receipt, index) => {
       const url = URL.createObjectURL(receipt.image); this.objectUrls.push(url);
@@ -321,7 +322,13 @@ class ReceiptApp {
     const normalized = query.trim().toLowerCase();
     const matches = this.receipts.filter((item) => `${item.merchant} ${item.note} ${item.category} ${item.date}`.toLowerCase().includes(normalized));
     const list = document.querySelector<HTMLElement>('#receipt-list')!;
-    this.releaseUrls(); list.innerHTML = this.renderReceipts(matches);
+    this.releaseUrls(); list.innerHTML = this.renderReceipts(matches, Boolean(normalized));
+    document.querySelector('[data-clear-search]')?.addEventListener('click', () => {
+      const search = document.querySelector<HTMLInputElement>('#search')!;
+      search.value = '';
+      this.filterList('');
+      search.focus();
+    });
     document.querySelectorAll<HTMLElement>('[data-edit]').forEach((button) => button.addEventListener('click', () => this.openReceipt(button.dataset.edit)));
     document.querySelectorAll<HTMLElement>('[data-delete]').forEach((button) => button.addEventListener('click', () => void this.removeReceipt(button.dataset.delete!)));
     document.querySelectorAll<HTMLElement>('[data-view]').forEach((button) => button.addEventListener('click', () => this.viewOriginal(button.dataset.view!)));
@@ -405,11 +412,7 @@ class ReceiptApp {
     const hadController = Boolean(navigator.serviceWorker.controller);
     const register = () => {
       void navigator.serviceWorker.register('/sw.js').then(async () => {
-        const registration = await navigator.serviceWorker.ready;
-        const urls = performance.getEntriesByType('resource')
-          .map((entry) => entry.name)
-          .filter((url) => url.startsWith(location.origin));
-        registration.active?.postMessage({ type: 'CACHE_URLS', urls });
+        await navigator.serviceWorker.ready;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (!hadController) return;
           const toast = document.querySelector<HTMLElement>('#toast');

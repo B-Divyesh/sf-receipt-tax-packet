@@ -17,7 +17,9 @@ async function filesIn(directory: string): Promise<string[]> {
 
 function serviceWorkerSource(version: string, precache: string[]): string {
   return `/* Generated during the production build. Do not edit this copy. */
-const VERSION = ${JSON.stringify(version)};
+const BASE_VERSION = ${JSON.stringify(version)};
+const REVISION = new URL(self.location.href).searchParams.get('revision');
+const VERSION = REVISION ? \`${'${BASE_VERSION}'}-\${REVISION.replace(/[^a-z0-9._-]/gi, '')}\` : BASE_VERSION;
 const PRECACHE = ${JSON.stringify(precache, null, 2)};
 
 self.addEventListener('install', (event) => {
@@ -25,10 +27,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(Promise.all([
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key)))),
-    self.clients.claim(),
-  ]));
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()),
+  );
 });
 
 self.addEventListener('fetch', (event) => {
