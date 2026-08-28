@@ -37,7 +37,10 @@ if (assets?.headers?.['Cache-Control'] !== 'public, max-age=31536000, immutable'
 const swRoute = config.routes?.find((route) => route.route === '/sw.js');
 if (!swRoute?.headers?.['Cache-Control']?.includes('no-store')) throw new Error('Service worker is not configured for revalidation');
 const manifestRoute = config.routes?.find((route) => route.route === '/manifest.webmanifest');
-if (!manifestRoute?.headers?.['Content-Type']?.startsWith('application/manifest+json')) throw new Error('Manifest MIME type is not configured');
+if (manifestRoute?.rewrite !== '/manifest.json') throw new Error('Manifest is not rewritten to the host JSON MIME mapping');
+const manifest = await readFile(join(output, 'manifest.webmanifest'), 'utf8');
+const jsonManifest = await readFile(join(output, 'manifest.json'), 'utf8');
+if (manifest !== jsonManifest) throw new Error('Manifest MIME rewrite target differs from the canonical manifest');
 for (const header of ['Content-Security-Policy', 'Permissions-Policy', 'X-Content-Type-Options', 'X-Frame-Options']) {
   if (!config.globalHeaders?.[header]) throw new Error(`Missing security header ${header}`);
 }
