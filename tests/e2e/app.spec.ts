@@ -120,5 +120,9 @@ test('replaces the active worker and reloads the new shell offline', async ({ br
   ]);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByText('Offline — capture and export still work')).toBeVisible();
+  const cachesAfterReload = await page.evaluate(async () => (await caches.keys()).filter((key) => key.startsWith('receipt-packet-shell-')));
+  expect(cachesAfterReload).toHaveLength(1);
+  expect(cachesAfterReload[0]).toContain('regression-update');
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? '')).toContain('revision=regression-update');
   await context.close();
 });

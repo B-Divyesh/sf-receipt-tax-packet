@@ -409,9 +409,14 @@ class ReceiptApp {
 
   private registerServiceWorker(): void {
     if (!('serviceWorker' in navigator)) return;
-    const hadController = Boolean(navigator.serviceWorker.controller);
+    const controller = navigator.serviceWorker.controller;
+    const hadController = Boolean(controller);
+    const controllerUrl = controller ? new URL(controller.scriptURL) : null;
+    const scriptUrl = controllerUrl?.origin === location.origin && controllerUrl.pathname === '/sw.js'
+      ? `${controllerUrl.pathname}${controllerUrl.search}`
+      : '/sw.js';
     const register = () => {
-      void navigator.serviceWorker.register('/sw.js').then(async () => {
+      void navigator.serviceWorker.register(scriptUrl).then(async () => {
         await navigator.serviceWorker.ready;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (!hadController) return;
@@ -433,7 +438,7 @@ class ReceiptApp {
   }
 
   private renderFatal(error: unknown): void {
-    this.root.innerHTML = this.shell(`<main id="main" class="fatal-state"><p class="eyebrow">Storage error</p><h1>The local vault could not open.</h1><p>${escapeHtml(error instanceof Error ? error.message : 'This browser did not make local storage available.')}</p><p>Try a normal browsing window with site storage enabled, then reload.</p><button class="button primary" type="button" onclick="location.reload()">Reload app</button></main>`);
+    this.root.innerHTML = this.shell(`<main id="main" class="fatal-state" tabindex="-1"><p class="eyebrow">Storage error</p><h1>The local vault could not open.</h1><p>${escapeHtml(error instanceof Error ? error.message : 'This browser did not make local storage available.')}</p><p>Try a normal browsing window with site storage enabled, then reload.</p><button class="button primary" type="button" onclick="location.reload()">Reload app</button></main>`);
   }
 }
 
