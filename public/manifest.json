@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Receipt Packet",
   "short_name": "Receipt Packet",
-  "description": "Encrypted receipt evidence packets, built locally.",
+  "description": "Organize original receipts and expense notes for a tax handoff.",
   "start_url": "/?source=pwa&v=1",
   "scope": "/",
   "display": "standalone",

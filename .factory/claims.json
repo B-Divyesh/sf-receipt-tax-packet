@@ -1,0 +1,58 @@
+[
+  {
+    "id": "demo-sample",
+    "claim": "Try it with sample data opens a populated packet with three sample expenses.",
+    "where": "Landing-page primary action and /demo",
+    "test": "npm test -- --grep @claim:demo-sample",
+    "sandbox": "Fresh browser context; click the landing action and open ?demo=1; assert the persistent sample label and three named sample records."
+  },
+  {
+    "id": "demo-isolation",
+    "claim": "Demo changes never appear in the real vault.",
+    "where": "Demo banner controls",
+    "test": "npm test -- --grep @claim:demo-isolation",
+    "sandbox": "Fresh browser context; add a demo-only record, reset, start for real, and assert the real vault is still empty."
+  },
+  {
+    "id": "encrypted-local-storage",
+    "claim": "Receipt metadata and originals are encrypted in browser storage.",
+    "where": "Landing fact and workspace",
+    "test": "npm test -- --grep @claim:encrypted-local-storage",
+    "sandbox": "Fresh demo browser context; inspect raw IndexedDB receipt rows and assert sample merchant and note plaintext are absent."
+  },
+  {
+    "id": "packet-export",
+    "claim": "Exports a packet ZIP with a PDF index, CSV, and every original.",
+    "where": "Landing steps and Export evidence ZIP control",
+    "test": "npm test -- --grep @claim:packet-export",
+    "sandbox": "Fresh demo browser context; download the packet and inspect ZIP entries and CSV rows."
+  },
+  {
+    "id": "original-links",
+    "claim": "Each receipt line is exported with its original filename and SHA-256 fingerprint.",
+    "where": "Workspace packet summary and exported packet",
+    "test": "npm test -- --grep @claim:original-links",
+    "sandbox": "Fresh demo browser context; download the packet and assert every CSV line has an original path and a 64-character SHA-256 value."
+  },
+  {
+    "id": "local-only",
+    "claim": "Receipt data stays on this device during the demo.",
+    "where": "Header and privacy page",
+    "test": "npm test -- --grep @claim:local-only",
+    "sandbox": "Fresh demo browser context; record every HTTP request while opening and viewing a sample original, then assert all are same-origin."
+  },
+  {
+    "id": "supporter-cover-fields",
+    "claim": "Custom PDF cover fields are a $19 one-time supporter feature.",
+    "where": "Landing fact, supporter panel, and Terms",
+    "test": "npm test -- --grep @claim:supporter-cover-fields",
+    "sandbox": "Fresh browser context; enter the demo first, transition to a clean real vault with a recorded active-license verdict, export a packet, and assert the custom cover title and preparer appear in the PDF. The exact price is recorded for registration in /work/.evidence/billing-offer.json."
+  },
+  {
+    "id": "offline-reload",
+    "claim": "Works offline after the first visit.",
+    "where": "Landing fact and network status strip",
+    "test": "npm test -- --grep @claim:offline-reload",
+    "sandbox": "Dedicated fresh mobile browser context; wait for service-worker control, set offline, reload twice, and assert the sample packet remains visible."
+  }
+]

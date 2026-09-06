@@ -1,15 +1,20 @@
 # Receipt Packet
 
-Receipt Packet is an offline-first evidence binder for self-employed people
-preparing a tax-period or accountant handoff. It ties every claimed expense to
-its unchanged receipt image, a factual explanation, and a SHA-256 fingerprint,
-then exports the selected period as one ZIP with a PDF index, CSV, integrity
-guide, and originals.
+Receipt Packet helps self-employed people organize original receipts and expense
+notes for a tax-period or accountant handoff. It links each expense to its
+unchanged receipt image and SHA-256 fingerprint, then exports the selected
+period as one ZIP with a PDF index, CSV, integrity guide, and originals.
 
 It deliberately does not perform OCR, bank sync, bookkeeping, reimbursement,
 or tax-deductibility decisions.
 
 Live site: <https://receipt-tax-packet.sociobot.in>
+
+Try it without setup: <https://receipt-tax-packet.sociobot.in/demo>.
+The demo contains three realistic receipt records in a separate browser-storage
+namespace. Its reset and start-for-real controls never write sample changes to
+your real vault. See [.factory/demo.md](.factory/demo.md) for the sample and
+storage details.
 
 ## What ships
 
@@ -22,8 +27,10 @@ Live site: <https://receipt-tax-packet.sociobot.in>
   note, and deterministically linked files under `originals/`.
 - Encrypted JSON backup and restore so data ownership is not tied to the app.
 - Installable PWA shell with an offline fallback and fully offline workspace.
-- Free core workflow plus a $19 one-time supporter unlock for custom PDF cover
-  fields through a rate-limited, same-origin relay to the Sociobot billing API.
+- Core capture, encrypted backup, and evidence export without a license.
+- A $19 one-time supporter feature for custom PDF cover title and preparer
+  fields. Purchase setup is pending billing registration; existing licenses can
+  still be restored and verified through the rate-limited same-origin relay.
 - Dedicated privacy and terms pages. No analytics, trackers, CDN scripts, or
   remote fonts.
 
@@ -47,9 +54,17 @@ npm run build
 ```
 
 `npm test` runs unit tests, a production type/build check, artifact-policy
-assertions, and Playwright browser tests for the capture/export flow, axe,
-keyboard use, exact 390px touch targets, repeated offline reloads, and a real
-service-worker replacement. Playwright 1.58.2 is pinned.
+assertions, and Playwright browser tests for the capture/export flow, demo
+isolation, axe, keyboard use, exact 390px touch targets, repeated offline
+reloads, and a real service-worker replacement. Playwright 1.58.2 is pinned.
+
+Every public product claim has a dedicated browser check in
+[.factory/claims.json](.factory/claims.json). From a clean checkout, run each
+declared command exactly as listed there, for example:
+
+```sh
+npm test -- --grep @claim:demo-sample
+```
 
 The reproducible deploy command is:
 
@@ -77,6 +92,8 @@ period and store both backup and passphrase safely.
 
 - [Opportunity brief](.factory/brief.json)
 - [Visual thesis and asset provenance](.factory/design.md)
+- [Demo sandbox](.factory/demo.md)
+- [Claims and their checks](.factory/claims.json)
 - [Build handoff](.factory/handoff.md)
 
 MIT licensed. See [LICENSE](LICENSE).

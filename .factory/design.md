@@ -105,8 +105,10 @@ It explains original-to-line integrity without pretending to show OCR.
 > currency symbols, calculators, phones, gradients, UI, watermark, or signature.
 
 The source PNG and prompt sidecar live in `assets/src/`; responsive WebP output
-lives in `public/assets/`. Generated imagery is original to this product and is
-disclosed in the footer.
+lives in `public/assets/`. `receipt-packet-social.webp` is a deterministic
+1200×630 centre crop of the reviewed hero, made 2026-09-06 for social metadata;
+it introduces no new subject matter. Generated imagery is original to this
+product and is disclosed in the footer.
 
 **Provenance:** generated 2026-08-28 with the Param Factory `factory-image`
 deployment through `/opt/fleet/lib/gen-image.sh`, 1536×1024, high quality. Review

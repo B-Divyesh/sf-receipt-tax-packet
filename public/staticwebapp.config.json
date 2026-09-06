@@ -15,14 +15,20 @@
     {
       "route": "/manifest.webmanifest",
       "rewrite": "/manifest.json"
+    },
+    {
+      "route": "/demo",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/demo/*",
+      "rewrite": "/index.html"
     }
   ],
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": [
-      "/assets/*",
-      "/*.{css,js,png,jpg,svg,webp,ico,woff2,json,txt,xml,wasm}"
-    ]
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/404.html"
+    }
   },
   "globalHeaders": {
     "Content-Security-Policy": "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; img-src 'self' blob: data:; manifest-src 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'",

@@ -1,8 +1,9 @@
 import './style.css';
 import { sha256 } from './crypto';
-import { createVault, deleteReceipt, exportBackup, getConfig, importBackup, listReceipts, openVault, saveReceipt, unlockVault } from './db';
+import { clearVault, createVault, DEMO_VAULT_DB, deleteReceipt, exportBackup, getConfig, importBackup, listReceipts, openVault, REAL_VAULT_DB, saveReceipt, unlockVault } from './db';
+import { createDemoReceipts } from './demo';
 import { createPacket, safeFileName } from './export';
-import { BUY_URL, captureLicense, hasCachedLicense, saveLicense, verifyLicense } from './license';
+import { captureLicense, hasCachedLicense, saveLicense, verifyLicense } from './license';
 import type { Currency, PacketOptions, VaultReceipt } from './types';
 
 const CATEGORIES = ['Advertising', 'Equipment', 'Insurance', 'Meals', 'Office', 'Professional fees', 'Software', 'Supplies', 'Travel', 'Utilities', 'Other'];
@@ -12,6 +13,8 @@ const escapeHtml = (value: string): string => value.replace(/[&<>'"]/g, (charact
 const formatBytes = (value: number): string => value < 1024 * 1024 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 / 1024).toFixed(1)} MB`;
 const formatMoney = (cents: number, currency: Currency): string => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(cents / 100);
 const isoToday = (): string => new Date().toISOString().slice(0, 10);
+const DEMO_PASSPHRASE = 'receipt-packet-sample-vault';
+const isDemoLocation = (): boolean => location.pathname.replace(/\/$/, '') === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
 
 function download(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
@@ -26,35 +29,49 @@ class ReceiptApp {
   private key: CryptoKey | null = null;
   private receipts: VaultReceipt[] = [];
   private objectUrls: string[] = [];
-  private premium = hasCachedLicense();
-  private license = captureLicense();
+  private demoMode = isDemoLocation();
+  private premium = this.demoMode ? false : hasCachedLicense();
+  private license = this.demoMode ? null : captureLicense();
   private online = navigator.onLine;
   private installPrompt: Event | null = null;
 
   async init(): Promise<void> {
     try {
-      this.db = await openVault();
+      this.setRouteMetadata();
+      this.db = await openVault(this.demoMode ? DEMO_VAULT_DB : REAL_VAULT_DB);
       this.bindGlobalEvents();
-      this.renderLocked(Boolean(await getConfig(this.db)));
-      if (this.license) void this.reconcileLicense(this.license);
+      if (this.demoMode) await this.loadDemo();
+      else {
+        this.renderLocked(Boolean(await getConfig(this.db)));
+        if (this.license) void this.reconcileLicense(this.license);
+      }
       this.registerServiceWorker();
     } catch (error) {
       this.renderFatal(error);
     }
   }
 
+  private setRouteMetadata(): void {
+    document.title = this.demoMode ? 'Demo — Receipt Packet' : 'Receipt Packet — organize tax receipts';
+    const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (canonical) canonical.href = new URL(this.demoMode ? '/demo' : '/', location.origin).href;
+  }
+
   private shell(content: string): string {
     return `
       <header class="site-header">
         <a class="wordmark" href="/" aria-label="Receipt Packet home"><span aria-hidden="true">RP/</span> Receipt Packet</a>
+        <nav class="site-nav" aria-label="Main navigation"><a href="/demo"${this.demoMode ? ' aria-current="page"' : ''}>Demo</a><a href="/privacy/">Privacy</a></nav>
         <span class="local-chip">Local only</span>
       </header>
       <div id="network-strip" class="network-strip ${this.online ? 'is-online' : ''}" role="status">${this.online ? 'Ready offline — your vault stays on this device' : 'Offline — capture and export still work'}</div>
+      ${this.demoMode ? `<aside class="demo-banner" aria-label="Demo controls"><div><strong>Demo — sample data, nothing is saved</strong><span>Reset it or leave it before creating your own vault.</span></div><div class="demo-actions"><button id="reset-demo" class="button quiet" type="button">Reset demo</button><button id="start-real" class="button secondary" type="button">Start for real</button></div></aside>` : ''}
       ${content}
       <footer class="site-footer">
-        <p>Evidence binder, not tax advice. Your records stay on this device.</p>
+        <p>Receipt records with originals for your accountant handoff. Not tax advice.</p>
         <nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
         <p class="generated-note">Original hero artwork generated for Receipt Packet with the Param Factory image model.</p>
+        <p class="build-note">Receipt Packet v1.0.0 · Built by Param Factory</p>
       </footer>
       <div id="announcer" class="sr-only" aria-live="polite"></div>
       <div id="toast" class="toast" role="status" hidden></div>`;
@@ -65,13 +82,15 @@ class ReceiptApp {
     this.root.innerHTML = this.shell(`
       <main id="main" class="entry-grid" tabindex="-1">
         <section class="entry-copy" aria-labelledby="page-title">
-          <p class="eyebrow">Original → line item → handoff</p>
-          <h1 id="page-title">Every claim keeps its proof.</h1>
-          <p class="lede">Build an accountant-ready packet from original receipt images—without bank access, OCR, or a subscription.</p>
+          <p class="eyebrow">Receipt records for a tax handoff</p>
+          <h1 id="page-title">Organize receipts for your tax handoff</h1>
+          <p class="lede">For self-employed people preparing a tax return or accountant handoff, it links every expense to its original receipt.</p>
+          <div class="entry-actions"><a class="button primary" href="/demo">Try it with sample data</a><span>See three sample expenses now.</span></div>
+          <ul class="plain-facts"><li>Local encrypted storage</li><li>Works offline after the first visit</li><li>Custom PDF cover fields: $19 once</li></ul>
           <ol class="proof-steps">
-            <li><strong>Capture</strong><span>Add the original and the claim explanation.</span></li>
-            <li><strong>Seal</strong><span>We fingerprint and encrypt it on this device.</span></li>
-            <li><strong>Hand off</strong><span>Export PDF + CSV + originals in one ZIP.</span></li>
+            <li><strong>1. Add</strong><span>Save the original and the expense explanation.</span></li>
+            <li><strong>2. Review</strong><span>Check each expense before you hand it off.</span></li>
+            <li><strong>3. Export</strong><span>Make one ZIP with a PDF, CSV, and originals.</span></li>
           </ol>
         </section>
         <picture class="hero-art">
@@ -81,7 +100,7 @@ class ReceiptApp {
         <section class="vault-card" aria-labelledby="vault-title">
           <div class="section-number">01 / Private vault</div>
           <h2 id="vault-title">${hasVault ? 'Unlock your packet' : 'Create your local vault'}</h2>
-          <p>${hasVault ? 'Your passphrase decrypts this device only. It is never stored or sent.' : 'Choose a passphrase of at least 10 characters. There is no password reset, so keep it somewhere safe.'}</p>
+          <p>${hasVault ? 'Use your passphrase to open records on this device.' : 'Choose a passphrase of at least 10 characters. There is no password reset, so keep it somewhere safe.'}</p>
           <form id="vault-form" novalidate>
             <label for="passphrase">Passphrase</label>
             <input id="passphrase" name="passphrase" type="password" minlength="10" autocomplete="${hasVault ? 'current-password' : 'new-password'}" required aria-describedby="vault-help" />
@@ -136,6 +155,32 @@ class ReceiptApp {
     this.renderWorkspace();
   }
 
+  private async loadDemo(): Promise<void> {
+    const config = await getConfig(this.db);
+    this.key = config ? await unlockVault(config, DEMO_PASSPHRASE) : await createVault(this.db, DEMO_PASSPHRASE);
+    if (!(await listReceipts(this.db, this.key)).length) await this.seedDemo();
+    await this.loadWorkspace();
+  }
+
+  private async seedDemo(): Promise<void> {
+    if (!this.key) return;
+    for (const receipt of await createDemoReceipts()) await saveReceipt(this.db, this.key, receipt);
+  }
+
+  private async resetDemo(): Promise<void> {
+    await clearVault(this.db);
+    this.key = await createVault(this.db, DEMO_PASSPHRASE);
+    await this.seedDemo();
+    await this.loadWorkspace();
+    this.toast('Sample data reset.');
+  }
+
+  private async startForReal(): Promise<void> {
+    await clearVault(this.db);
+    this.key = null;
+    location.assign('/');
+  }
+
   private renderWorkspace(): void {
     this.releaseUrls();
     const currencies = new Set(this.receipts.map((item) => item.currency));
@@ -143,7 +188,7 @@ class ReceiptApp {
     this.root.innerHTML = this.shell(`
       <main id="main" class="workbench" tabindex="-1">
         <div class="workspace-head">
-          <div><p class="eyebrow">Encrypted evidence binder</p><h1>Your receipt packet</h1><p class="subline">Every saved line has an unchanged original and SHA-256 fingerprint.</p></div>
+          <div><p class="eyebrow">Encrypted receipt records</p><h1>Your receipt packet</h1><p class="subline">Every saved line has an unchanged original and SHA-256 fingerprint.</p></div>
           <div class="head-actions"><button id="install-button" class="button quiet" type="button" hidden>Install app</button><button id="lock-button" class="button secondary" type="button">Lock vault</button><button id="add-button" class="button primary" type="button">+ Add receipt</button></div>
         </div>
         <section class="ledger-stats" aria-label="Packet summary">
@@ -157,12 +202,12 @@ class ReceiptApp {
             <div id="receipt-list">${this.renderReceipts(this.receipts)}</div>
           </section>
           <aside class="export-panel" aria-labelledby="export-title">
-            <span class="section-number">03 / Hand off</span><h2 id="export-title">Build the packet</h2>
+            <span class="section-number">03 / Export</span><h2 id="export-title">Build the packet</h2>
             <p>Choose a period. Your ZIP includes a PDF index, spreadsheet-ready CSV, integrity guide, and every original.</p>
             <div class="date-row"><label for="from-date">From<input id="from-date" type="date" /></label><label for="to-date">To<input id="to-date" type="date" /></label></div>
             <p id="export-count" class="packet-count">${this.receipts.length} receipt${this.receipts.length === 1 ? '' : 's'} selected</p>
             <div class="premium-fields ${this.premium ? 'is-unlocked' : ''}">
-              <div class="premium-label">${this.premium ? '✓ Supporter fields unlocked' : 'Supporter customisation'}</div>
+              <div class="premium-label">${this.premium ? '✓ Supporter fields active' : 'Supporter cover fields'}</div>
               <label for="packet-title">Cover title<input id="packet-title" type="text" maxlength="60" value="Receipt evidence packet" ${this.premium ? '' : 'disabled'} /></label>
               <label for="prepared-by">Prepared by<input id="prepared-by" type="text" maxlength="60" ${this.premium ? '' : 'disabled'} /></label>
             </div>
@@ -178,6 +223,10 @@ class ReceiptApp {
       </main>
       ${this.receiptDialog()}`);
     this.bindWorkspaceEvents();
+    if (this.demoMode) {
+      document.querySelector('#reset-demo')?.addEventListener('click', () => void this.resetDemo());
+      document.querySelector('#start-real')?.addEventListener('click', () => void this.startForReal());
+    }
   }
 
   private renderReceipts(receipts: VaultReceipt[], filtered = false): string {
@@ -195,8 +244,8 @@ class ReceiptApp {
   }
 
   private renderSupporter(): string {
-    if (this.premium) return `<div class="support-box unlocked"><p class="eyebrow">Supporter unlocked</p><h3>Thank you for backing local tools.</h3><p>Your PDF cover can include a custom title and preparer name.</p></div>`;
-    return `<div class="support-box"><p class="eyebrow">One-time · $19</p><h3>Make the cover yours</h3><p>Support Receipt Packet and unlock custom cover titles and preparer details. Core capture, backup, and packet export stay free.</p><a class="button acid full" href="${BUY_URL}">Buy supporter unlock</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste license token</label><input id="license-token" type="text" autocomplete="off" required /><button class="button secondary full" type="submit">Verify license</button><p id="license-status" class="field-help" aria-live="polite"></p></form></details><p class="legal-small">One-time purchase. Sociobot/Dodo is merchant of record; refunds revoke the license. <a href="/terms/">Terms</a> · <a href="/privacy/">Privacy</a></p></div>`;
+    if (this.premium) return `<div class="support-box unlocked"><p class="eyebrow">Supporter cover fields active</p><h3>Custom PDF cover fields</h3><p>Your PDF cover can include a custom title and preparer name.</p></div>`;
+    return `<div class="support-box"><p class="eyebrow">One-time · $19</p><h3>Custom PDF cover fields</h3><p>Add a cover title and preparer name to a packet PDF. Capture, backup, and packet export stay available without a license.</p><p class="purchase-pending">Purchases are temporarily unavailable while this billing offer is registered. Existing licenses can still be restored below.</p><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste license token</label><input id="license-token" type="text" autocomplete="off" required /><button class="button secondary full" type="submit">Verify license</button><p id="license-status" class="field-help" aria-live="polite"></p></form></details><p class="legal-small">One-time purchase. Sociobot/Dodo is merchant of record; refunds revoke the license. <a href="/terms/">Terms</a> · <a href="/privacy/">Privacy</a></p></div>`;
   }
 
   private receiptDialog(): string {
@@ -381,8 +430,8 @@ class ReceiptApp {
     if (!token) return;
     saveLicense(token); status.textContent = 'Verifying…';
     const valid = await verifyLicense(token);
-    if (valid) { this.license = token; this.premium = true; this.renderWorkspace(); this.toast('Supporter unlock restored.'); }
-    else status.textContent = valid === false ? 'That license is not active. Check the token or buy a new unlock.' : 'Could not reach license verification. Your free tools remain available.';
+    if (valid) { this.license = token; this.premium = true; this.renderWorkspace(); this.toast('Supporter cover fields restored.'); }
+    else status.textContent = valid === false ? 'That license is not active. Check the token and try again.' : 'Could not reach license verification. Your free tools remain available.';
   }
 
   private async reconcileLicense(token: string): Promise<void> {

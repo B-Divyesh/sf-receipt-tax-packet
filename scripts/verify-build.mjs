@@ -41,6 +41,19 @@ if (manifestRoute?.rewrite !== '/manifest.json') throw new Error('Manifest is no
 const manifest = await readFile(join(output, 'manifest.webmanifest'), 'utf8');
 const jsonManifest = await readFile(join(output, 'manifest.json'), 'utf8');
 if (manifest !== jsonManifest) throw new Error('Manifest MIME rewrite target differs from the canonical manifest');
+if (config.navigationFallback) throw new Error('A blanket navigation fallback would turn unknown routes into HTTP 200 pages');
+if (!config.routes?.some((route) => route.route === '/demo' && route.rewrite === '/index.html')) {
+  throw new Error('The direct demo route is not configured to serve the application');
+}
+if (config.responseOverrides?.['404']?.rewrite !== '/404.html') {
+  throw new Error('Unknown routes are not configured to return the designed 404 page');
+}
+const notFound = await readFile(join(output, '404.html'), 'utf8');
+if (!/<title>Page not found — Receipt Packet<\/title>/.test(notFound) || !/<main\b/.test(notFound) || !/<h1[^>]*>Page not found<\/h1>/.test(notFound)) {
+  throw new Error('The 404 page does not have a usable document title and main page content');
+}
+const social = await stat(join(output, 'assets', 'receipt-packet-social.webp'));
+if (social.size === 0) throw new Error('Social preview image is missing from the production artifact');
 for (const header of ['Content-Security-Policy', 'Permissions-Policy', 'X-Content-Type-Options', 'X-Frame-Options']) {
   if (!config.globalHeaders?.[header]) throw new Error(`Missing security header ${header}`);
 }

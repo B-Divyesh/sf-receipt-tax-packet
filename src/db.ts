@@ -1,7 +1,8 @@
 import { base64ToBytes, bytesToBase64, decryptBytes, decryptText, deriveKey, encryptBytes, encryptText, randomSalt } from './crypto';
 import type { ReceiptMeta, StoredReceipt, VaultConfig, VaultReceipt } from './types';
 
-const DB_NAME = 'receipt-packet-v1';
+export const REAL_VAULT_DB = 'receipt-packet-v1';
+export const DEMO_VAULT_DB = 'receipt-packet-demo-v1';
 const DB_VERSION = 1;
 
 function request<T>(value: IDBRequest<T>): Promise<T> {
@@ -11,9 +12,9 @@ function request<T>(value: IDBRequest<T>): Promise<T> {
   });
 }
 
-export async function openVault(): Promise<IDBDatabase> {
+export async function openVault(name = REAL_VAULT_DB): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const opening = indexedDB.open(DB_NAME, DB_VERSION);
+    const opening = indexedDB.open(name, DB_VERSION);
     opening.onupgradeneeded = () => {
       const db = opening.result;
       if (!db.objectStoreNames.contains('config')) db.createObjectStore('config', { keyPath: 'id' });
@@ -21,6 +22,18 @@ export async function openVault(): Promise<IDBDatabase> {
     };
     opening.onsuccess = () => resolve(opening.result);
     opening.onerror = () => reject(opening.error ?? new Error('The local vault could not be opened.'));
+  });
+}
+
+/** Clears only the database connection passed to it. The demo uses its own name. */
+export async function clearVault(db: IDBDatabase): Promise<void> {
+  const transaction = db.transaction(['config', 'receipts'], 'readwrite');
+  transaction.objectStore('config').clear();
+  transaction.objectStore('receipts').clear();
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error('The local vault could not be cleared.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('The local vault could not be cleared.'));
   });
 }
 
