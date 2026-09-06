@@ -30,7 +30,7 @@ storage details.
 - Core capture, encrypted backup, and evidence export without a license.
 - A $19 one-time supporter feature for custom PDF cover title and preparer
   fields. Purchase setup is pending billing registration; existing licenses can
-  still be restored and verified through the rate-limited same-origin relay.
+  still be restored and verified through the same-origin relay.
 - Dedicated privacy and terms pages. No analytics, trackers, CDN scripts, or
   remote fonts.
 
